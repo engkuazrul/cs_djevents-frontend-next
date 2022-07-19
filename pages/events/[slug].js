@@ -6,6 +6,9 @@ import { API_URL } from "@/config/index";
 import styles from '@/styles/Event.module.css'
 
 export default function EventPage({evt}) {
+  const { attributes } = evt;
+  const {date, time, name, image, performers, description, venue, address} = attributes;
+
   const deleteEvent = (e) => {
     console.log(e);
   }
@@ -25,22 +28,22 @@ export default function EventPage({evt}) {
         </div>
 
         <span>
-          {evt.date} at {evt.time}
+          {new Date(date).toLocaleDateString('en-US')} at {time}
         </span>
 
-        <h1>{evt.name}</h1>
-        {evt.image && (
+        <h1>{name}</h1>
+        {image && (
           <div className={styles.image}>
-            <Image src={evt.image} width={960} height={600} alt={`${evt.name} event's image`} />
+            <Image src={image ? image.data.attributes.formats.medium.url : '/images/event-default.png'} width={960} height={600} alt={`${name} event's image`} />
           </div>
         )}
 
         <h3>Performers:</h3>
-        <p>{evt.performers}</p>
+        <p>{performers}</p>
         <h3>Description:</h3>
-        <p>{evt.description}</p>
-        <h3>Venue: {evt.venue}</h3>
-        <p>{evt.address}</p>
+        <p>{description}</p>
+        <h3>Venue: {venue}</h3>
+        <p>{address}</p>
 
         <Link href='/events'>
           <a className={styles.back}>
@@ -53,12 +56,17 @@ export default function EventPage({evt}) {
 }
 
 export async function getStaticPaths(){
-  const res = await fetch(`${API_URL}/api/events`)
-  const events = await res.json()
+  const res = await fetch(`${API_URL}/api/events`);
+  const json = await res.json();
+  const { data } = json;
 
-  const paths = events.map(evt => ({
-    params: {slug: evt.slug}
-  }))
+  const paths = data.map(evt => {
+    const {attributes} = evt;
+
+    return {
+      params: {slug: attributes.slug}
+    }
+  })
 
   return {
     paths,
@@ -67,12 +75,13 @@ export async function getStaticPaths(){
 }
 
 export async function getStaticProps({params: {slug}}) {
-  const res = await fetch(`${API_URL}/api/events/${slug}`);
-  const events = await res.json();
+  const res = await fetch(`${API_URL}/api/events?slug=${slug}&populate=*`);
+  const json = await res.json();
+  const { data } = json;
 
   return {
     props: {
-      evt: events[0]
+      evt: data[0]
     },
     revalidate: 1
   }
